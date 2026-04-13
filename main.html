@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌌 My Game Portal</title>
+  <style>
+    body {
+      background: #0a001f;
+      color: #0ff;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      text-align: center;
+    }
+    h1 {
+      font-size: 62px;
+      margin-bottom: 20px;
+      text-shadow: 0 0 40px #0ff;
+    }
+    p {
+      font-size: 26px;
+      margin-bottom: 60px;
+      opacity: 0.9;
+    }
+    .games {
+      display: flex;
+      gap: 35px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .card {
+      width: 320px;
+      background: rgba(30, 0, 80, 0.92);
+      border: 5px solid #0ff;
+      border-radius: 25px;
+      padding: 40px 25px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .card:hover {
+      transform: scale(1.1);
+      border-color: #f0f;
+      box-shadow: 0 0 60px #f0f;
+    }
+    button {
+      margin-top: 25px;
+      padding: 14px 60px;
+      font-size: 20px;
+      background: #0ff;
+      color: #000;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🌌 MY GAME PORTAL</h1>
+    <p>Choose a game to play</p>
+
+    <div class="games">
+
+      <div class="card" onclick="window.location.href='space-dodger.html'">
+        <h2>🚀 Space Dodger</h2>
+        <p>Dodge falling asteroids</p>
+        <button>PLAY</button>
+      </div>
+
+      <div class="card" onclick="window.location.href='jigsaw.html'">
+        <h2>🧩 Jigsaw Puzzle</h2>
+        <p>Piece together the puzzle</p>
+        <button>PLAY</button>
+      </div>
+
+      <div class="card" onclick="window.location.href='maze.html'">
+        <h2>🌀 Maze Runner</h2>
+        <p>Find the exit fast</p>
+        <button>PLAY</button>
+      </div>
+
+      <div class="card" onclick="window.location.href='void-defender.html'">
+        <h2>⚡ Void Defender</h2>
+        <p>Shoot enemies • Survive 3 hits • Choose upgrades</p>
+        <button>PLAY</button>
+      </div>
+
+      <div class="card" onclick="window.location.href='wave.html'">
+        <h2>🌊 Wave Survivor</h2>
+        <p>Survive endless waves</p>
+        <button>PLAY</button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
