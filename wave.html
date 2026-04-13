@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wave Survivor</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      color: #0ff;
+    }
+    canvas {
+      border: 5px solid #0ff;
+      box-shadow: 0 0 40px #0ff;
+    }
+    #back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 12px 25px;
+      background: #0ff;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #score {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 28px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <button id="back-btn" onclick="window.location.href='portal.html'">← Back to Portal</button>
+  <div id="score">Wave: 1  Score: 0</div>
+  <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+
+    let player = { x: 250, y: 400, size: 20, speed: 6 };
+    let enemies = [];
+    let score = 0;
+    let wave = 1;
+    let running = true;
+    let keys = {};
+
+    window.addEventListener('keydown', e => keys[e.key] = true);
+    window.addEventListener('keyup', e => keys[e.key] = false);
+
+    function spawnEnemy() {
+      enemies.push({
+        x: Math.random() * 460 + 20,
+        y: -30,
+        size: 18,
+        speed: 2 + wave * 0.5
+      });
+    }
+
+    function update() {
+      if (!running) return;
+
+      if ((keys['ArrowLeft'] || keys['a']) && player.x > 0) player.x -= player.speed;
+      if ((keys['ArrowRight'] || keys['d']) && player.x < 480) player.x += player.speed;
+      if ((keys['ArrowUp'] || keys['w']) && player.y > 0) player.y -= player.speed;
+      if ((keys['ArrowDown'] || keys['s']) && player.y < 480) player.y += player.speed;
+
+      // Move enemies
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        let e = enemies[i];
+        e.y += e.speed;
+
+        if (e.y > 520) {
+          enemies.splice(i, 1);
+          continue;
+        }
+
+        // Collision
+        if (
+          player.x < e.x + e.size &&
+          player.x + player.size > e.x &&
+          player.y < e.y + e.size &&
+          player.y + player.size > e.y
+        ) {
+          running = false;
+          alert(`Game Over!\nWave: ${wave}\nScore: ${score}`);
+          window.location.href = 'portal.html';
+        }
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#000011';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Player
+      ctx.fillStyle = '#0ff';
+      ctx.fillRect(player.x, player.y, player.size, player.size);
+
+      // Enemies
+      ctx.fillStyle = '#f00';
+      enemies.forEach(e => {
+        ctx.fillRect(e.x, e.y, e.size, e.size);
+      });
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Spawn enemies
+    setInterval(() => {
+      if (running) spawnEnemy();
+    }, 600);
+
+    // Increase wave
+    setInterval(() => {
+      if (running) {
+        wave++;
+        score += 50;
+        scoreEl.textContent = `Wave: ${wave}  Score: ${score}`;
+      }
+    }, 8000);
+
+    gameLoop();
+  </script>
+</body>
+</html>
