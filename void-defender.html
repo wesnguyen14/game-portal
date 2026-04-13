@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Void Defender</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      color: #0ff;
+      overflow: hidden;
+    }
+    canvas {
+      border: 5px solid #0ff;
+      box-shadow: 0 0 50px #0ff;
+    }
+    #ui {
+      position: absolute;
+      top: 20px;
+      width: 500px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    #back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      background: #0ff;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <button id="back-btn" onclick="window.location.href='portal.html'">← Back to Portal</button>
+  
+  <div id="ui">
+    <div>Lives: <span id="lives">3</span></div>
+    <div>Score: <span id="score">0</span></div>
+    <div>Wave: <span id="wave">1</span></div>
+  </div>
+
+  <canvas id="gameCanvas" width="500" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let player = { x: 250, y: 500, width: 40, height: 40, speed: 6 };
+    let bullets = [];
+    let enemies = [];
+    let particles = [];
+    let score = 0;
+    let lives = 3;
+    let wave = 1;
+    let gameRunning = true;
+    let keys = {};
+    let upgradeScreen = false;
+
+    window.addEventListener('keydown', e => keys[e.key] = true);
+    window.addEventListener('keyup', e => keys[e.key] = false);
+
+    // Shoot with space or click
+    canvas.addEventListener('click', shoot);
+
+    function shoot() {
+      if (!gameRunning || upgradeScreen) return;
+      bullets.push({
+        x: player.x + player.width/2 - 3,
+        y: player.y,
+        width: 6,
+        height: 16,
+        speed: 12
+      });
+    }
+
+    function spawnEnemy() {
+      enemies.push({
+        x: Math.random() * (canvas.width - 40),
+        y: -40,
+        width: 35,
+        height: 35,
+        speed: 2 + wave * 0.4
+      });
+    }
+
+    function createExplosion(x, y) {
+      for (let i = 0; i < 12; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.random() * 8 - 4,
+          vy: Math.random() * 8 - 4,
+          life: 30
+        });
+      }
+    }
+
+    function showUpgradeScreen() {
+      upgradeScreen = true;
+      const choice = confirm(`Wave ${wave} Complete!\nScore: ${score}\n\nChoose your upgrade:\n\n1. Faster Shooting\n2. Bigger Bullets\n3. Extra Life\n\nType 1, 2, or 3`);
+      
+      if (choice === "1") player.speed += 1;           // Faster movement
+      else if (choice === "2") bullets.forEach(b => b.width += 4); // Bigger bullets
+      else if (choice === "3") lives = Math.min(5, lives + 1);
+
+      upgradeScreen = false;
+      wave++;
+      document.getElementById('wave').textContent = wave;
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+
+      ctx.fillStyle = '#000011';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Player movement
+      if ((keys['ArrowLeft'] || keys['a']) && player.x > 0) player.x -= player.speed;
+      if ((keys['ArrowRight'] || keys['d']) && player.x < canvas.width - player.width) player.x += player.speed;
+
+      // Draw player (spaceship)
+      ctx.fillStyle = '#0ff';
+      ctx.fillRect(player.x + 10, player.y + 10, player.width - 20, player.height - 15);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(player.x + 18, player.y + 8, 6, 12);
+
+      // Bullets
+      ctx.fillStyle = '#ff0';
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.y -= b.speed;
+        ctx.fillRect(b.x, b.y, b.width, b.height);
+
+        if (b.y < 0) bullets.splice(i, 1);
+      }
+
+      // Enemies
+      ctx.fillStyle = '#f44';
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        let e = enemies[i];
+        e.y += e.speed;
+        ctx.fillRect(e.x, e.y, e.width, e.height);
+
+        // Collision with player
+        if (
+          player.x < e.x + e.width &&
+          player.x + player.width > e.x &&
+          player.y < e.y + e.height &&
+          player.y + player.height > e.y
+        ) {
+          lives--;
+          document.getElementById('lives').textContent = lives;
+          createExplosion(e.x + 17, e.y + 17);
+          enemies.splice(i, 1);
+
+          if (lives <= 0) {
+            gameRunning = false;
+            setTimeout(() => {
+              alert(`Game Over!\nFinal Score: ${score}\nWave: ${wave}`);
+              window.location.href = 'portal.html';
+            }, 200);
+          }
+        }
+
+        // Collision with bullets
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          let b = bullets[j];
+          if (
+            b.x < e.x + e.width &&
+            b.x + b.width > e.x &&
+            b.y < e.y + e.height &&
+            b.y + b.height > e.y
+          ) {
+            score += 10;
+            document.getElementById('score').textContent = score;
+            createExplosion(e.x + 17, e.y + 17);
+            enemies.splice(i, 1);
+            bullets.splice(j, 1);
+            break;
+          }
+        }
+
+        if (e.y > canvas.height) enemies.splice(i, 1);
+      }
+
+      // Particles
+      ctx.fillStyle = '#ff0';
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        ctx.globalAlpha = p.life / 30;
+        ctx.fillRect(p.x, p.y, 6, 6);
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+      ctx.globalAlpha = 1;
+
+      // Spawn enemies
+      if (Math.random() < 0.03 + wave * 0.008) spawnEnemy();
+
+      // Next wave
+      if (enemies.length === 0 && Math.random() < 0.02) {
+        showUpgradeScreen();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Auto spawn some enemies at start
+    for (let i = 0; i < 3; i++) spawnEnemy();
+
+    gameLoop();
+  </script>
+</body>
+</html>
