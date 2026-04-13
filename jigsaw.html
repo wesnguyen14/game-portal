@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jigsaw Studio Pro</title>
+    <style>
+        body { 
+            background: #0a0a0a; 
+            color: #fff; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            height: 100vh; 
+            overflow: hidden; 
+            touch-action: none;
+        }
+        #ui-bar { 
+            position: absolute; 
+            top: 20px; 
+            z-index: 100; 
+            background: rgba(20, 20, 20, 0.9); 
+            padding: 10px 20px; 
+            border-radius: 50px; 
+            display: flex; 
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+        }
+        canvas { display: block; }
+        button { 
+            padding: 10px 20px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 25px; 
+            background: #007bff; 
+            color: white;
+            font-weight: bold; 
+            font-size: 13px;
+            transition: 0.2s;
+        }
+        button:hover { background: #0056b3; }
+        .slider-group { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #999; }
+        input[type="range"] { cursor: pointer; accent-color: #007bff; }
+        #cameraInput { display: none; }
+        #pieceDisplay { color: #00ff88; font-weight: bold; width: 30px; }
+    </style>
+</head>
+<body>
+
+<div id="ui-bar">
+    <button onclick="document.getElementById('cameraInput').click()">📸 Photo</button>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment">
+    
+    <div class="slider-group">
+        <span>Grid:</span>
+        <input type="range" id="pieceSlider" min="2" max="10" value="5">
+        <span id="pieceDisplay">25</span>
+    </div>
+
+    <button style="background: #28a745;" onclick="initPuzzle()">Shuffle</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const cameraInput = document.getElementById('cameraInput');
+const pieceSlider = document.getElementById('pieceSlider');
+const pieceDisplay = document.getElementById('pieceDisplay');
+
+let gridSize = 5; 
+const SNAP_DIST = 45;
+
+let img = new Image();
+let pieces = [];
+let selectedPiece = null;
+let pW, pH, bX, bY;
+let flash = { active: false, x: 0, y: 0, alpha: 0 };
+
+// Default image to load
+img.src = 'https://picsum.photos/id/15/1200/800'; 
+
+pieceSlider.oninput = () => {
+    gridSize = parseInt(pieceSlider.value);
+    pieceDisplay.innerText = gridSize * gridSize;
+    initPuzzle();
+};
+
+cameraInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { img.src = ev.target.result; };
+    reader.readAsDataURL(file);
+};
+
+img.onload = () => { initPuzzle(); requestAnimationFrame(loop); };
+
+function initPuzzle() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    const scale = Math.min((canvas.width * 0.75) / img.width, (canvas.height * 0.75) / img.height);
+    const dW = img.width * scale;
+    const dH = img.height * scale;
+    
+    pW = dW / gridSize;
+    pH = dH / gridSize;
+    bX = (canvas.width - dW) / 2;
+    bY = (canvas.height - dH) / 2;
+
+    pieces = [];
+    for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+            pieces.push({
+                r, c,
+                x: Math.random() * (canvas.width - pW),
+                y: Math.random() * (canvas.height - pH),
+                tx: bX + c * pW,
+                ty: bY + r * pH,
+                locked: false
+            });
+        }
+    }
+}
+
+function loop() {
+    ctx.fillStyle = "#0a0a0a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Subtle grid outline
+    ctx.strokeStyle = "rgba(255,255,255,0.03)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bX, bY, pW * gridSize, pH * gridSize);
+
+    pieces.forEach(p => {
+        ctx.save();
+        
+        if (p === selectedPiece) {
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = "#007bff";
+            ctx.scale(1.02, 1.02); 
+        }
+
+        const sw = img.width / gridSize;
+        const sh = img.height / gridSize;
+        ctx.drawImage(img, p.c * sw, p.r * sh, sw, sh, p.x, p.y, pW, pH);
+        
+        if (!p.locked) {
+            ctx.strokeStyle = "rgba(255,255,255,0.2)";
+            ctx.strokeRect(p.x, p.y, pW, pH);
+        }
+        
+        ctx.restore();
+    });
+
+    // Green Snap Flash Effect
+    if (flash.active) {
+        ctx.fillStyle = `rgba(0, 255, 136, ${flash.alpha})`;
+        ctx.fillRect(flash.x, flash.y, pW, pH);
+        flash.alpha -= 0.05;
+        if (flash.alpha <= 0) flash.active = false;
+    }
+    
+    requestAnimationFrame(loop);
+}
+
+function getPointer(e) {
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX, y: t.clientY };
+}
+
+function onStart(e) {
+    const pos = getPointer(e);
+    for (let i = pieces.length - 1; i >= 0; i--) {
+        const p = pieces[i];
+        if (!p.locked && pos.x > p.x && pos.x < p.x + pW && pos.y > p.y && pos.y < p.y + pH) {
+            selectedPiece = p;
+            pieces.push(pieces.splice(i, 1)[0]); 
+            break;
+        }
+    }
+}
+
+function onMove(e) {
+    if (!selectedPiece) return;
+    const pos = getPointer(e);
+    selectedPiece.x = pos.x - pW / 2;
+    selectedPiece.y = pos.y - pH / 2;
+}
+
+function onEnd() {
+    if (!selectedPiece) return;
+    const d = Math.hypot(selectedPiece.x - selectedPiece.tx, selectedPiece.y - selectedPiece.ty);
+    
+    if (d < SNAP_DIST) {
+        selectedPiece.x = selectedPiece.tx;
+        selectedPiece.y = selectedPiece.ty;
+        selectedPiece.locked = true;
+        
+        // Trigger Green Flash
+        flash = { active: true, x: selectedPiece.tx, y: selectedPiece.ty, alpha: 0.6 };
+    }
+    selectedPiece = null;
+    if (pieces.every(p => p.locked)) setTimeout(() => alert("Puzzle Complete! 🎉"), 300);
+}
+
+canvas.addEventListener('mousedown', onStart);
+window.addEventListener('mousemove', onMove);
+window.addEventListener('mouseup', onEnd);
+
+canvas.addEventListener('touchstart', (e) => { onStart(e); e.preventDefault(); }, {passive: false});
+window.addEventListener('touchmove', (e) => { onMove(e); e.preventDefault(); }, {passive: false});
+window.addEventListener('touchend', onEnd);
+
+window.onresize = () => initPuzzle();
+</script>
+</body>
+</html>
